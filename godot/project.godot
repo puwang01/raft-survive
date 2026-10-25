@@ -1,0 +1,39 @@
+; Engine configuration file.
+; Godot 4.x minimal skeleton for Raft Survive.
+; Open this folder in Godot 4 Editor to continue engine work.
+; The playable try-now build is currently play/index.html (HTML5).
+
+config_version=5
+
+[application]
+
+config/name="Raft Survive"
+config/description="Tense mobile raft survival — short levels, hook scavenging."
+config/version="0.1.0-level1-skeleton"
+run/main_scene="res://scenes/boot/boot.tscn"
+config/features=PackedStringArray("4.2", "Mobile")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+
+[layer_names]
+
+2d_physics/layer_1="raft"
+2d_physics/layer_2="hook"
+2d_physics/layer_3="debris"
+2d_physics/layer_4="hazard"

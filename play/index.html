@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Raft Survive — Level 1</title>
+<style>
+  :root {
+    --bg: #0a1628;
+    --sea: #1a4a6e;
+    --panel: rgba(8, 18, 32, 0.88);
+    --accent: #f0c gener;
+    --danger: #ff4d4d;
+    --ok: #4dff88;
+    --warn: #ffcc33;
+    --text: #e8f1ff;
+    --muted: #8aa0b8;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans SC", sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  #wrap {
+    position: relative; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: stretch;
+  }
+  canvas#game {
+    display: block; width: 100%; flex: 1; min-height: 0;
+    background: #0d2840; cursor: crosshair;
+  }
+  #hud {
+    position: absolute; left: 0; right: 0; top: 0;
+    padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+    pointer-events: none; z-index: 5;
+  }
+  #hud .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .bar-wrap {
+    flex: 1; min-width: 90px; background: var(--panel);
+    border-radius: 10px; padding: 6px 8px 7px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .bar-label { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .bar {
+    height: 10px; border-radius: 5px; background: rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+  .bar > i { display: block; height: 100%; width: 100%; transform-origin: left center; transition: transform 0.15s linear; border-radius: 5px; }
+  .bar.hp > i { background: linear-gradient(90deg, #c62828, #ef5350); }
+  .bar.hunger > i { background: linear-gradient(90deg, #ef6c00, #ffb74d); }
+  .bar.thirst > i { background: linear-gradient(90deg, #0277bd, #4fc3f7); }
+  .bar.low > i { animation: pulse 0.7s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+  #objective {
+    margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+  }
+  .chip.warn { border-color: rgba(255,204,51,0.45); color: var(--warn); }
+  .chip.ok { border-color: rgba(77,255,136,0.4); color: var(--ok); }
+  #hint {
+    position: absolute; left: 50%; bottom: max(88px, calc(env(safe-area-inset-bottom) + 72px));
+    transform: translateX(-50%); z-index: 5; pointer-events: none;
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 10px 16px; font-size: 14px; text-align: center;
+    max-width: min(92vw, 360px); opacity: 0; transition: opacity 0.3s;
+  }
+  #hint.show { opacity: 1; }
+  #controls {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+    padding: 10px 12px max(14px, env(safe-area-inset-bottom));
+    display: flex; gap: 10px; justify-content: space-between; align-items: center;
+    pointer-events: none;
+  }
+  #controls button {
+    pointer-events: auto; min-width: 64px; min-height: 52px;
+    padding: 12px 16px; font-size: 15px; font-weight: 700;
+    border: none; border-radius: 14px; color: #061018;
+    background: linear-gradient(180deg, #7ec8ff, #3a9adf);
+    box-shadow: 0 4px 0 #1a5a8a, 0 6px 16px rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  #controls button:active { transform: translateY(2px); box-shadow: 0 2px 0 #1a5a8a; }
+  #controls button.secondary {
+    background: linear-gradient(180deg, #c5d4e4, #8a9bb0);
+    box-shadow: 0 4px 0 #5a6a7c, 0 6px 16px rgba(0,0,0,0.35);
+  }
+  #controls button.danger {
+    background: linear-gradient(180deg, #ff8a80, #e53935);
+    box-shadow: 0 4px 0 #8e1f1c, 0 6px 16px rgba(0,0,0,0.35);
+    color: #fff;
+  }
+  .toast {
+    position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%);
+    z-index: 20; background: var(--panel); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 12px 18px; font-size: 15px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .toast.show { opacity: 1; }
+  .overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(4, 10, 20, 0.82);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .overlay.show { display: flex; }
+  .panel {
+    width: min(92vw, 380px); background: #12233a;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 18px;
+    padding: 22px 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .panel h1 { margin: 0 0 8px; font-size: 22px; }
+  .panel p { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .panel .btns { display: flex; flex-direction: column; gap: 10px; }
+  .panel button {
+    width: 100%; min-height: 48px; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 700; cursor: pointer; padding: 12px;
+    background: linear-gradient(180deg, #7ec8ff, #3a9adf); color: #061018;
+  }
+  .panel button.ghost {
+    background: transparent; color: var(--text);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .panel button.green { background: linear-gradient(180deg, #7dffb0, #2ecc71); }
+  .panel .stats { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+  #title-screen .logo {
+    font-size: 28px; font-weight: 800; letter-spacing: 0.02em;
+    background: linear-gradient(180deg, #dff3ff, #6eb6ef);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div class="row">
+      <div class="bar-wrap">
+        <div class="bar-label"><span>❤ 生命</span><span id="hpTxt">100</span></div>
+        <div class="bar hp" id="hpBar"><i style="transform:scaleX(1)"></i></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span>🍖 饥饿</span><span id="hungerTxt">100</span></div>
+        <div class="bar hunger" id="hungerBar"><i style="transform:scaleX(1)"></i></div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span>💧 口渴</span><span id="thirstTxt">100</span></div>
+        <div class="bar thirst" id="thirstBar"><i style="transform:scaleX(1)"></i></div>
+      </div>
+    </div>
+    <div id="objective">
+      <div class="chip" id="woodChip">🪵 浮木 0/5</div>
+      <div class="chip warn" id="timerChip">⏱ 4:00</div>
+    </div>
+  </div>
+  <div id="hint"></div>
+  <div id="controls">
+    <button type="button" class="secondary" id="btnPause">暂停</button>
+    <button type="button" id="btnReel" disabled style="opacity:0.45">收回钩</button>
+    <button type="button" class="danger" id="btnEat" title="吃食物">吃喝</button>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <div class="overlay show" id="title-screen">
+    <div class="panel">
+      <div class="logo">Raft Survive</div>
+      <h1>第 1 关 · 海上残骸</h1>
+      <p>拖动瞄准、松手抛钩，打捞 <b>5 块浮木</b>。盯住口渴——它掉得最快。避开鲨鱼。</p>
+      <div class="btns">
+        <button type="button" id="btnStart">开始试玩</button>
+        <button type="button" class="ghost" id="btnContinue">继续存档</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-screen">
+    <div class="panel">
+      <h1>暂停</h1>
+      <p>手动存档写入本机浏览器 localStorage；每 60 秒也会自动存档。</p>
+      <div class="btns">
+        <button type="button" id="btnResume">继续游戏</button>
+        <button type="button" class="ghost" id="btnSave">手动存档</button>
+        <button type="button" class="ghost" id="btnLoad">读取存档</button>
+        <button type="button" class="ghost" id="btnRestart">重开本关</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="end-screen">
+    <div class="panel">
+      <h1 id="endTitle">通关！</h1>
+      <p id="endMsg"></p>
+      <div class="stats" id="endStats"></div>
+      <div class="btns">
+        <button type="button" class="green" id="btnAgain">再来一局</button>
+        <button type="button" class="ghost" id="btnMenu">回标题</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  "use strict";
+
+  const SAVE_KEY = "raftSurvive_L1_v1";
+  const AUTO_SAVE_MS = 60000;
+  const LEVEL_TIME = 240; // 4 minutes
+  const WIN_WOOD = 5;
+  const WORLD = { w: 900, h: 1400 };
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const el = {
+    hpBar: document.querySelector("#hpBar i"),
+    hungerBar: document.querySelector("#hungerBar i"),
+    thirstBar: document.querySelector("#thirstBar i"),
+    hpWrap: document.getElementById("hpBar"),
+    hungerWrap: document.getElementById("hungerBar"),
+    thirstWrap: document.getElementById("thirstBar"),
+    hpTxt: document.getElementById("hpTxt"),
+    hungerTxt: document.getElementById("hungerTxt"),
+    thirstTxt: document.getElementById("thirstTxt"),
+    woodChip: document.getElementById("woodChip"),
+    timerChip: document.getElementById("timerChip"),
+    hint: document.getElementById("hint"),
+    toast: document.getElementById("toast"),
+    title: document.getElementById("title-screen"),
+    pause: document.getElementById("pause-screen"),
+    end: document.getElementById("end-screen"),
+    endTitle: document.getElementById("endTitle"),
+    endMsg: document.getElementById("endMsg"),
+    endStats: document.getElementById("endStats"),
+    btnReel: document.getElementById("btnReel"),
+    btnEat: document.getElementById("btnEat"),
+  };
+
+  let dpr = 1, viewW = 0, viewH = 0;
+  let cam = { x: 0, y: 0 };
+  let running = false, paused = false, ended = false;
+  let lastTs = 0, autoSaveAcc = 0;
+  let hintTimer = 0;
+  let pointer = { down: false, x: 0, y: 0, aim: false };
+  let waveT = 0;
+
+  const state = defaultState();
+
+  function defaultState() {
+    return {
+      health: 100,
+      hunger: 100,
+      thirst: 100,
+      wood: 0,
+      food: 1,
+      water: 1,
+      timeLeft: LEVEL_TIME,
+      playTime: 0,
+      raft: { x: WORLD.w / 2, y: WORLD.h / 2, w: 90, h: 70 },
+      player: { ox: 0, oy: -6 },
+      hook: { phase: "idle", x: 0, y: 0, vx: 0, vy: 0, target: null, length: 0 },
+      debris: [],
+      shark: { x: 200, y: 200, vx: 40, vy: 20, aggro: 0, biteCd: 0 },
+      spawner: 0,
+      hurtFlash: 0,
+      kills: 0,
+      hookedCount: 0,
+      seed: Date.now() % 1e9,
+    };
+  }
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    viewW = rect.width;
+    viewH = rect.height;
+    canvas.width = Math.floor(viewW * dpr);
+    canvas.height = Math.floor(viewH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function toast(msg, ms = 1600) {
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.toast.classList.remove("show"), ms);
+  }
+
+  function showHint(msg, ms = 3500) {
+    el.hint.textContent = msg;
+    el.hint.classList.add("show");
+    hintTimer = ms / 1000;
+  }
+
+  function updateHUD() {
+    const clamp = (v) => Math.max(0, Math.min(100, v));
+    const h = clamp(state.health), g = clamp(state.hunger), t = clamp(state.thirst);
+    el.hpBar.style.transform = `scaleX(${h / 100})`;
+    el.hungerBar.style.transform = `scaleX(${g / 100})`;
+    el.thirstBar.style.transform = `scaleX(${t / 100})`;
+    el.hpTxt.textContent = Math.round(h);
+    el.hungerTxt.textContent = Math.round(g);
+    el.thirstTxt.textContent = Math.round(t);
+    el.hpWrap.classList.toggle("low", h < 30);
+    el.hungerWrap.classList.toggle("low", g < 25);
+    el.thirstWrap.classList.toggle("low", t < 25);
+    el.woodChip.textContent = `🪵 浮木 ${state.wood}/${WIN_WOOD}`;
+    el.woodChip.classList.toggle("ok", state.wood >= WIN_WOOD);
+    const m = Math.floor(state.timeLeft / 60);
+    const s = Math.floor(state.timeLeft % 60);
+    el.timerChip.textContent = `⏱ ${m}:${s.toString().padStart(2, "0")}`;
+    el.timerChip.classList.toggle("warn", state.timeLeft < 60);
+    el.btnReel.disabled = state.hook.phase === "idle";
+    el.btnReel.style.opacity = state.hook.phase === "idle" ? "0.45" : "1";
+    el.btnEat.textContent = `吃喝 (${state.food + state.water})`;
+    el.btnEat.disabled = state.food + state.water <= 0;
+    el.btnEat.style.opacity = state.food + state.water <= 0 ? "0.45" : "1";
+  }
+
+  function saveGame(manual = false) {
+    try {
+      const payload = {
+        v: 1,
+        savedAt: Date.now(),
+        state: {
+          health: state.health,
+          hunger: state.hunger,
+          thirst: state.thirst,
+          wood: state.wood,
+          food: state.food,
+          water: state.water,
+          timeLeft: state.timeLeft,
+          playTime: state.playTime,
+          raft: { ...state.raft },
+          shark: { ...state.shark },
+          debris: state.debris.map((d) => ({ ...d })),
+          seed: state.seed,
+          hookedCount: state.hookedCount,
+        },
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+      if (manual) toast("已保存 ✓");
+      return true;
+    } catch (e) {
+      if (manual) toast("存档失败");
+      return false;
+    }
+  }
+
+  function loadGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      if (!payload || !payload.state) return false;
+      const s = payload.state;
+      Object.assign(state, defaultState(), {
+        health: s.health,
+        hunger: s.hunger,
+        thirst: s.thirst,
+        wood: s.wood,
+        food: s.food ?? 0,
+        water: s.water ?? 0,
+        timeLeft: s.timeLeft,
+        playTime: s.playTime || 0,
+        raft: s.raft || state.raft,
+        shark: Object.assign(state.shark, s.shark || {}),
+        debris: Array.isArray(s.debris) ? s.debris : [],
+        seed: s.seed || state.seed,
+        hookedCount: s.hookedCount || 0,
+        hook: { phase: "idle", x: 0, y: 0, vx: 0, vy: 0, target: null, length: 0 },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); } catch { return false; }
+  }
+
+  function spawnDebris(forcedType) {
+    const types = ["wood", "wood", "wood", "barrel", "crate", "fish", "bottle"];
+    const type = forcedType || types[Math.floor(Math.random() * types.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 180 + Math.random() * 320;
+    const cx = state.raft.x + Math.cos(angle) * dist;
+    const cy = state.raft.y + Math.sin(angle) * dist;
+    const x = Math.max(40, Math.min(WORLD.w - 40, cx));
+    const y = Math.max(40, Math.min(WORLD.h - 40, cy));
+    const drift = 12 + Math.random() * 22;
+    state.debris.push({
+      id: Math.random().toString(36).slice(2),
+      type,
+      x, y,
+      vx: (Math.random() - 0.5) * drift,
+      vy: (Math.random() - 0.5) * drift,
+      r: type === "wood" ? 16 : type === "fish" ? 12 : 18,
+      bob: Math.random() * Math.PI * 2,
+      hooked: false,
+    });
+  }
+
+  function ensureDebris() {
+    while (state.debris.filter((d) => !d.hooked).length < 8) spawnDebris();
+  }
+
+  function worldFromClient(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = clientX - rect.left;
+    const sy = clientY - rect.top;
+    return { x: sx + cam.x, y: sy + cam.y };
+  }
+
+  function raftCenter() {
+    return { x: state.raft.x, y: state.raft.y };
+  }
+
+  function throwHook(wx, wy) {
+    if (state.hook.phase !== "idle" || ended || !running) return;
+    const origin = raftCenter();
+    const dx = wx - origin.x;
+    const dy = wy - origin.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const speed = 520;
+    const maxRange = 340;
+    const scale = Math.min(1, maxRange / len);
+    state.hook.phase = "fly";
+    state.hook.x = origin.x;
+    state.hook.y = origin.y;
+    state.hook.vx = (dx / len) * speed * scale;
+    state.hook.vy = (dy / len) * speed * scale;
+    state.hook.target = null;
+    state.hook.length = 0;
+    state.hook.maxDist = Math.min(maxRange, len * 0.95 + 80);
+  }
+
+  function reelHook(force = false) {
+    if (state.hook.phase === "idle") return;
+    if (state.hook.phase === "fly" || force) {
+      state.hook.phase = "reel";
+      state.hook.target = null;
+    }
+  }
+
+  function consumeEat() {
+    if (ended || !running) return;
+    if (state.food <= 0 && state.water <= 0) {
+      toast("没有食物或淡水");
+      return;
+    }
+    if (state.thirst <= state.hunger && state.water > 0) {
+      state.water -= 1;
+      state.thirst = Math.min(100, state.thirst + 40);
+      toast("喝了淡水 +口渴");
+    } else if (state.food > 0) {
+      state.food -= 1;
+      state.hunger = Math.min(100, state.hunger + 35);
+      toast("吃了食物 +饥饿");
+    } else if (state.water > 0) {
+      state.water -= 1;
+      state.thirst = Math.min(100, state.thirst + 40);
+      toast("喝了淡水 +口渴");
+    }
+    updateHUD();
+  }
+
+  function applyLoot(type) {
+    state.hookedCount++;
+    if (type === "wood") {
+      state.wood += 1;
+      toast(`浮木 ${state.wood}/${WIN_WOOD}`);
+      if (state.wood >= WIN_WOOD) win("收集到足够浮木，加固了木筏！");
+    } else if (type === "barrel" || type === "bottle") {
+      state.water += 1;
+      toast("获得淡水");
+    } else if (type === "crate" || type === "fish") {
+      state.food += 1;
+      toast(type === "fish" ? "钓到鱼！" : "获得食物");
+    }
+    updateHUD();
+  }
+
+  function hurt(amount, reason) {
+    state.health = Math.max(0, state.health - amount);
+    state.hurtFlash = 0.35;
+    if (reason) toast(reason);
+    if (state.health <= 0) lose("生命耗尽…葬身波涛。");
+    updateHUD();
+  }
+
+  function win(msg) {
+    if (ended) return;
+    ended = true;
+    running = false;
+    saveGame(false);
+    el.endTitle.textContent = "通关！";
+    el.endMsg.textContent = msg;
+    el.endStats.innerHTML = `用时 ${fmtTime(state.playTime)} · 浮木 ${state.wood}/${WIN_WOOD}<br>打捞 ${state.hookedCount} 次 · 剩余生命 ${Math.round(state.health)}`;
+    el.end.classList.add("show");
+  }
+
+  function lose(msg) {
+    if (ended) return;
+    ended = true;
+    running = false;
+    el.endTitle.textContent = "失败";
+    el.endMsg.textContent = msg;
+    el.endStats.innerHTML = `存活 ${fmtTime(state.playTime)} · 浮木 ${state.wood}/${WIN_WOOD}<br>打捞 ${state.hookedCount} 次`;
+    el.end.classList.add("show");
+  }
+
+  function fmtTime(t) {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function startGame(fromSave) {
+    ended = false;
+    paused = false;
+    el.end.classList.remove("show");
+    el.pause.classList.remove("show");
+    el.title.classList.remove("show");
+    if (!fromSave) {
+      Object.assign(state, defaultState());
+      state.debris = [];
+      ensureDebris();
+      // guarantee some wood nearby
+      for (let i = 0; i < 3; i++) spawnDebris("wood");
+      showHint("按住拖动瞄准，松手抛钩 · 打捞 5 块浮木");
+    } else {
+      if (!loadGame()) {
+        toast("没有存档");
+        el.title.classList.add("show");
+        return;
+      }
+      ensureDebris();
+      showHint("已读取存档，继续求生");
+      toast("已读取存档");
+    }
+    autoSaveAcc = 0;
+    running = true;
+    lastTs = performance.now();
+    updateHUD();
+  }
+
+  function updateSurvival(dt) {
+    // Thirst empty ~75s, hunger ~140s from full
+    state.thirst = Math.max(0, state.thirst - (100 / 75) * dt);
+    state.hunger = Math.max(0, state.hunger - (100 / 140) * dt);
+    if (state.thirst <= 0) state.health -= 8 * dt;
+    if (state.hunger <= 0) state.health -= 5 * dt;
+    if (state.health <= 0) {
+      state.health = 0;
+      lose(state.thirst <= 0 ? "口渴难忍，倒下了…" : "饥饿虚弱，倒下了…");
+    }
+  }
+
+  function updateDebris(dt) {
+    for (const d of state.debris) {
+      if (d.hooked) continue;
+      d.bob += dt * 2.2;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      // soft bounds
+      if (d.x < 30 || d.x > WORLD.w - 30) d.vx *= -1;
+      if (d.y < 30 || d.y > WORLD.h - 30) d.vy *= -1;
+      d.x = Math.max(20, Math.min(WORLD.w - 20, d.x));
+      d.y = Math.max(20, Math.min(WORLD.h - 20, d.y));
+      // mild drift toward/away
+      const dx = d.x - state.raft.x;
+      const dy = d.y - state.raft.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 70) {
+        d.vx += (dx / (dist || 1)) * 20 * dt;
+        d.vy += (dy / (dist || 1)) * 20 * dt;
+      }
+    }
+    state.spawner += dt;
+    if (state.spawner > 2.8) {
+      state.spawner = 0;
+      if (state.debris.filter((d) => !d.hooked).length < 10) spawnDebris();
+    }
+  }
+
+  function updateHook(dt) {
+    const h = state.hook;
+    const origin = raftCenter();
+    if (h.phase === "idle") return;
+
+    if (h.phase === "fly") {
+      h.x += h.vx * dt;
+      h.y += h.vy * dt;
+      h.length = Math.hypot(h.x - origin.x, h.y - origin.y);
+      // gravity-ish drag
+      h.vx *= 1 - 0.35 * dt;
+      h.vy *= 1 - 0.35 * dt;
+      for (const d of state.debris) {
+        if (d.hooked) continue;
+        if (Math.hypot(h.x - d.x, h.y - d.y) < d.r + 10) {
+          d.hooked = true;
+          h.target = d;
+          h.phase = "reel";
+          break;
+        }
+      }
+      if (h.length > h.maxDist || h.x < 0 || h.y < 0 || h.x > WORLD.w || h.y > WORLD.h) {
+        h.phase = "reel";
+      }
+    } else if (h.phase === "reel") {
+      if (h.target) {
+        const d = h.target;
+        const dx = origin.x - d.x;
+        const dy = origin.y - d.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const spd = 280;
+        d.x += (dx / dist) * spd * dt;
+        d.y += (dy / dist) * spd * dt;
+        h.x = d.x;
+        h.y = d.y;
+        if (dist < 40) {
+          applyLoot(d.type);
+          state.debris = state.debris.filter((x) => x !== d);
+          h.phase = "idle";
+          h.target = null;
+        }
+      } else {
+        const dx = origin.x - h.x;
+        const dy = origin.y - h.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const spd = 400;
+        h.x += (dx / dist) * spd * dt;
+        h.y += (dy / dist) * spd * dt;
+        if (dist < 24) h.phase = "idle";
+      }
+    }
+  }
+
+  function updateShark(dt) {
+    const s = state.shark;
+    s.biteCd = Math.max(0, s.biteCd - dt);
+    const dx = state.raft.x - s.x;
+    const dy = state.raft.y - s.y;
+    const dist = Math.hypot(dx, dy) || 1;
+
+    // Aggro after 45s or when player has wood>=2
+    const aggroTime = state.playTime > 45 || state.wood >= 2;
+    if (aggroTime) s.aggro = Math.min(1, s.aggro + dt * 0.15);
+    else s.aggro = Math.max(0, s.aggro - dt * 0.05);
+
+    const speed = 55 + s.aggro * 90;
+    if (s.aggro > 0.2) {
+      s.vx = (dx / dist) * speed;
+      s.vy = (dy / dist) * speed;
+    } else {
+      // patrol
+      s.vx += (Math.random() - 0.5) * 40 * dt;
+      s.vy += (Math.random() - 0.5) * 40 * dt;
+      const sp = Math.hypot(s.vx, s.vy) || 1;
+      s.vx = (s.vx / sp) * 50;
+      s.vy = (s.vy / sp) * 50;
+    }
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.x = Math.max(40, Math.min(WORLD.w - 40, s.x));
+    s.y = Math.max(40, Math.min(WORLD.h - 40, s.y));
+
+    const hitR = 55;
+    if (dist < hitR && s.biteCd <= 0 && s.aggro > 0.3) {
+      s.biteCd = 2.2;
+      hurt(18, "鲨鱼撞击！");
+      // knock raft slightly
+      state.raft.x += (dx / dist) * -12;
+      state.raft.y += (dy / dist) * -12;
+    }
+  }
+
+  function updateCamera() {
+    cam.x = state.raft.x - viewW / 2;
+    cam.y = state.raft.y - viewH / 2;
+    cam.x = Math.max(0, Math.min(WORLD.w - viewW, cam.x));
+    cam.y = Math.max(0, Math.min(WORLD.h - viewH, cam.y));
+    // if world smaller than view, center
+    if (WORLD.w < viewW) cam.x = (WORLD.w - viewW) / 2;
+    if (WORLD.h < viewH) cam.y = (WORLD.h - viewH) / 2;
+  }
+
+  // —— Rendering ——
+  function draw() {
+    ctx.clearRect(0, 0, viewW, viewH);
+    // ocean background
+    const g = ctx.createLinearGradient(0, 0, 0, viewH);
+    g.addColorStop(0, "#0b3a5c");
+    g.addColorStop(1, "#062238");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, viewW, viewH);
+
+    ctx.save();
+    ctx.translate(-cam.x, -cam.y);
+
+    drawWater();
+    drawShark();
+    for (const d of state.debris) drawDebris(d);
+    drawRaft();
+    drawHook();
+    drawAim();
+
+    ctx.restore();
+
+    if (state.hurtFlash > 0) {
+      ctx.fillStyle = `rgba(200,20,20,${state.hurtFlash * 0.45})`;
+      ctx.fillRect(0, 0, viewW, viewH);
+    }
+  }
+
+  function drawWater() {
+    ctx.strokeStyle = "rgba(120,190,230,0.12)";
+    ctx.lineWidth = 2;
+    for (let y = 0; y < WORLD.h; y += 36) {
+      ctx.beginPath();
+      for (let x = 0; x <= WORLD.w; x += 24) {
+        const yy = y + Math.sin(x * 0.02 + waveT * 1.5 + y * 0.01) * 5;
+        if (x === 0) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+  }
+
+  function drawRaft() {
+    const r = state.raft;
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    // shadow
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(0, 18, r.w * 0.55, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // planks
+    ctx.fillStyle = "#8b5a2b";
+    ctx.strokeStyle = "#5c3a1a";
+    ctx.lineWidth = 2;
+    roundRect(-r.w / 2, -r.h / 2, r.w, r.h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-r.w / 2 + 6, i * 12);
+      ctx.lineTo(r.w / 2 - 6, i * 12);
+      ctx.stroke();
+    }
+    // player
+    ctx.fillStyle = "#2d6a4f";
+    ctx.beginPath();
+    ctx.arc(state.player.ox, state.player.oy, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffdbac";
+    ctx.beginPath();
+    ctx.arc(state.player.ox, state.player.oy - 16, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // hook holder
+    ctx.strokeStyle = "#c0c8d0";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(18, -8);
+    ctx.lineTo(28, -18);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, rad) {
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+  }
+
+  function drawDebris(d) {
+    const bob = Math.sin(d.bob) * 3;
+    ctx.save();
+    ctx.translate(d.x, d.y + bob);
+    if (d.type === "wood") {
+      ctx.fillStyle = "#a67c52";
+      ctx.strokeStyle = "#6d4c2f";
+      ctx.lineWidth = 2;
+      roundRect(-18, -7, 36, 14, 3);
+      ctx.fill(); ctx.stroke();
+    } else if (d.type === "barrel") {
+      ctx.fillStyle = "#c45c26";
+      ctx.beginPath(); ctx.ellipse(0, 0, 14, 16, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#7a3010"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = "#e8c39e";
+      ctx.beginPath(); ctx.moveTo(-12, -4); ctx.lineTo(12, -4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-12, 4); ctx.lineTo(12, 4); ctx.stroke();
+    } else if (d.type === "crate") {
+      ctx.fillStyle = "#c4a35a";
+      roundRect(-14, -14, 28, 28, 3); ctx.fill();
+      ctx.strokeStyle = "#7a6230"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(0, 14); ctx.stroke();
+    } else if (d.type === "fish") {
+      ctx.fillStyle = "#5dade2";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-14, 0); ctx.lineTo(-22, -6); ctx.lineTo(-22, 6); ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(6, -2, 2, 0, Math.PI * 2); ctx.fill();
+    } else if (d.type === "bottle") {
+      ctx.fillStyle = "rgba(100,200,255,0.55)";
+      roundRect(-6, -14, 12, 28, 4); ctx.fill();
+      ctx.strokeStyle = "rgba(200,240,255,0.8)"; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = "#ddd";
+      roundRect(-4, -18, 8, 6, 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawShark() {
+    const s = state.shark;
+    const ang = Math.atan2(s.vy, s.vx);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(ang);
+    ctx.fillStyle = s.aggro > 0.3 ? "#3a4a55" : "#4a5a66";
+    ctx.beginPath();
+    ctx.moveTo(28, 0);
+    ctx.quadraticCurveTo(5, -16, -24, -6);
+    ctx.lineTo(-32, -14);
+    ctx.lineTo(-28, 0);
+    ctx.lineTo(-32, 14);
+    ctx.lineTo(-24, 6);
+    ctx.quadraticCurveTo(5, 16, 28, 0);
+    ctx.fill();
+    // fin
+    ctx.beginPath();
+    ctx.moveTo(0, -6); ctx.lineTo(-4, -22); ctx.lineTo(10, -4);
+    ctx.fill();
+    if (s.aggro > 0.3) {
+      ctx.fillStyle = "#ff4455";
+      ctx.beginPath(); ctx.arc(18, -3, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawHook() {
+    const h = state.hook;
+    if (h.phase === "idle") return;
+    const o = raftCenter();
+    ctx.strokeStyle = "rgba(220,230,240,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(o.x + 28, o.y - 18);
+    ctx.lineTo(h.x, h.y);
+    ctx.stroke();
+    ctx.fillStyle = "#d0d8e0";
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    // hook shape
+    ctx.strokeStyle = "#e8eef5";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(h.x + 4, h.y + 4, 6, -0.2, Math.PI * 1.1);
+    ctx.stroke();
+  }
+
+  function drawAim() {
+    if (!pointer.aim || state.hook.phase !== "idle") return;
+    const o = raftCenter();
+    const dx = pointer.x - o.x;
+    const dy = pointer.y - o.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const maxR = 340;
+    const reach = Math.min(maxR, len);
+    const ex = o.x + (dx / len) * reach;
+    const ey = o.y + (dy / len) * reach;
+    ctx.strokeStyle = "rgba(255,220,100,0.7)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(o.x + 28, o.y - 18);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(255,220,100,0.85)";
+    ctx.beginPath();
+    ctx.arc(ex, ey, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // —— Input ——
+  function onPointerDown(e) {
+    if (!running || paused || ended) return;
+    if (e.target.closest && e.target.closest("#controls, .overlay")) return;
+    const p = e.touches ? e.touches[0] : e;
+    const w = worldFromClient(p.clientX, p.clientY);
+    pointer.down = true;
+    pointer.aim = state.hook.phase === "idle";
+    pointer.x = w.x;
+    pointer.y = w.y;
+  }
+  function onPointerMove(e) {
+    if (!pointer.down) return;
+    const p = e.touches ? e.touches[0] : e;
+    const w = worldFromClient(p.clientX, p.clientY);
+    pointer.x = w.x;
+    pointer.y = w.y;
+  }
+  function onPointerUp(e) {
+    if (!pointer.down) return;
+    pointer.down = false;
+    if (pointer.aim && state.hook.phase === "idle") {
+      throwHook(pointer.x, pointer.y);
+    }
+    pointer.aim = false;
+  }
+
+  canvas.addEventListener("mousedown", onPointerDown);
+  window.addEventListener("mousemove", onPointerMove);
+  window.addEventListener("mouseup", onPointerUp);
+  canvas.addEventListener("touchstart", (e) => { e.preventDefault(); onPointerDown(e); }, { passive: false });
+  window.addEventListener("touchmove", (e) => { e.preventDefault(); onPointerMove(e); }, { passive: false });
+  window.addEventListener("touchend", (e) => { onPointerUp(e); });
+  window.addEventListener("touchcancel", onPointerUp);
+
+  // Buttons
+  document.getElementById("btnStart").onclick = () => startGame(false);
+  document.getElementById("btnContinue").onclick = () => startGame(true);
+  document.getElementById("btnPause").onclick = () => {
+    if (!running || ended) return;
+    paused = true;
+    el.pause.classList.add("show");
+  };
+  document.getElementById("btnResume").onclick = () => {
+    paused = false;
+    el.pause.classList.remove("show");
+    lastTs = performance.now();
+  };
+  document.getElementById("btnSave").onclick = () => saveGame(true);
+  document.getElementById("btnLoad").onclick = () => {
+    if (loadGame()) {
+      ensureDebris();
+      toast("已读取存档");
+      updateHUD();
+      paused = false;
+      el.pause.classList.remove("show");
+      ended = false;
+      running = true;
+      lastTs = performance.now();
+    } else toast("没有存档");
+  };
+  document.getElementById("btnRestart").onclick = () => {
+    el.pause.classList.remove("show");
+    startGame(false);
+  };
+  document.getElementById("btnAgain").onclick = () => startGame(false);
+  document.getElementById("btnMenu").onclick = () => {
+    el.end.classList.remove("show");
+    el.title.classList.add("show");
+    running = false;
+    document.getElementById("btnContinue").style.display = hasSave() ? "" : "none";
+  };
+  el.btnReel.onclick = () => reelHook(true);
+  el.btnEat.onclick = consumeEat;
+
+  document.getElementById("btnContinue").style.display = hasSave() ? "" : "none";
+
+  // Visibility autosave
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && running && !ended) saveGame(false);
+  });
+
+  function tick(ts) {
+    const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0);
+    lastTs = ts;
+    if (running && !paused && !ended) {
+      // Clear the buggy partial update — call proper systems
+      waveT += dt;
+      state.playTime += dt;
+      state.timeLeft = Math.max(0, state.timeLeft - dt);
+      if (hintTimer > 0) {
+        hintTimer -= dt;
+        if (hintTimer <= 0) el.hint.classList.remove("show");
+      }
+      if (state.hurtFlash > 0) state.hurtFlash -= dt;
+
+      updateSurvival(dt);
+      updateDebris(dt);
+      updateHook(dt);
+      updateShark(dt);
+      updateCamera();
+      updateHUD();
+
+      autoSaveAcc += dt * 1000;
+      if (autoSaveAcc >= AUTO_SAVE_MS) {
+        autoSaveAcc = 0;
+        saveGame(false);
+        toast("自动存档", 900);
+      }
+
+      if (state.timeLeft <= 0 && state.wood < WIN_WOOD) {
+        lose("时间耗尽，救援未至…");
+      }
+    } else if (!running) {
+      waveT += dt;
+      updateCamera();
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  // Idle preview on title: still draw ocean
+  Object.assign(state, defaultState());
+  ensureDebris();
+  updateCamera();
+  updateHUD();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
