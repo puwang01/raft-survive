@@ -42,9 +42,13 @@ func _ready() -> void:
 	sky.position = Vector2(0, -80)
 	sky.scale = Vector2(WORLD.x / 720.0 * 1.1, 1.15)
 	player.texture = load("res://assets/art/player.png")
-	player.position = Vector2(12, -28)
-	player.scale = Vector2(0.62, 0.62)
-	player.z_index = 2
+	player.centered = true
+	# Offset so sprite origin sits at feet (bottom), clearly standing on deck
+	player.offset = Vector2(0, -player.texture.get_height() * 0.5)  # feet at node origin
+	player.position = Vector2(22, 6)  # feet planted on raft deck
+	player.scale = Vector2(0.72, 0.72)
+	player.z_index = 3
+	player.rotation = 0.0
 	shark.raft_path = shark.get_path_to(raft)
 	shark.position = Vector2(200, 200)
 	shark.bit_raft.connect(_on_shark_bite)
