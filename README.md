@@ -10,7 +10,7 @@
 
 | 获取方式 | 链接 |
 |----------|------|
-| GitHub Release | **[直接下载 APK](https://github.com/puwang01/raft-survive/releases/download/v0.2.3/RaftSurvive-level1-debug.apk)** |
+| GitHub Release | **[直接下载 APK](https://github.com/puwang01/raft-survive/releases/download/v0.2.4/RaftSurvive-level1-debug.apk)** |
 | 仓库内文件 | [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) |
 
 ### 手机安装步骤
@@ -22,7 +22,7 @@
 3. 打开下载的 `RaftSurvive-level1-debug.apk` → 安装 → 打开 **Raft Survive**。
 4. 若系统提示「面向旧版 Android / 调试版」：点继续安装即可（debug 包用于试玩）。
 
-包名：`com.puwang.raftsurvive` · 版本：`0.2.3`
+包名：`com.puwang.raftsurvive` · 版本：`0.2.4`
 
 ### 操作
 
@@ -32,6 +32,8 @@
 - 暂停里可**手动存档**；游戏中每 **60 秒**自动存档（进后台也会存）。
 
 ## 画面（相对旧 HTML 原型）
+
+**v0.2.4** 修复「开始游戏」无响应（v0.2.3 关卡脚本笔误导致 Level 未加载）。
 
 **v0.2.3** 对齐参考截图 + 显示适配：
 

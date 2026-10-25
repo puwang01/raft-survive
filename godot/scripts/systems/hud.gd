@@ -127,14 +127,16 @@ func _make_dim(n: String) -> ColorRect:
 	var c := ColorRect.new()
 	c.name = n
 	c.color = Color(0.02, 0.05, 0.1, 0.75)
-	c.set_anchors_preset(Control.PRESET_FULL_RECT)
+	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	c.mouse_filter = Control.MOUSE_FILTER_STOP
+	c.z_index = 10
 	root.add_child(c)
 	return c
 
 func _make_panel(parent: Control) -> VBoxContainer:
 	var pc := PanelContainer.new()
 	pc.set_anchors_preset(Control.PRESET_CENTER)
+	pc.mouse_filter = Control.MOUSE_FILTER_STOP
 	pc.offset_left = -180
 	pc.offset_top = -190
 	pc.offset_right = 180
@@ -168,7 +170,9 @@ func _add_lbl(parent: VBoxContainer, text: String, size: int, wrap: bool = false
 func _add_btn(parent: VBoxContainer, text: String) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 46)
+	b.custom_minimum_size = Vector2(0, 52)
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.focus_mode = Control.FOCUS_ALL
 	parent.add_child(b)
 	return b
 
@@ -323,9 +327,28 @@ func _on_eat() -> void:
 		level.consume_eat()
 
 func _on_start() -> void:
-	if level:
-		level.start_fresh()
+	var lvl := _resolve_level()
+	if lvl == null:
+		GameState.show_toast("关卡未就绪，请重开应用")
+		return
+	lvl.start_fresh()
 
 func _on_continue() -> void:
-	if level:
-		level.start_from_save()
+	var lvl := _resolve_level()
+	if lvl == null:
+		GameState.show_toast("关卡未就绪，请重开应用")
+		return
+	lvl.start_from_save()
+
+func _resolve_level() -> LevelRoot:
+	if level != null:
+		return level
+	var nodes := get_tree().get_nodes_in_group("level_root")
+	if nodes.size() > 0 and nodes[0] is LevelRoot:
+		level = nodes[0]
+		return level
+	var p := get_parent()
+	if p is LevelRoot:
+		level = p
+		return level
+	return null

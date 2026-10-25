@@ -67,12 +67,12 @@ func _ready() -> void:
 func _setup_water_shader() -> void:
 	# Seafloor underlay — visible through translucent water
 	var ocean_spr := Sprite2D.new()
-	ocan_spr.name = "OceanUnderlay"
-	ocan_spr.texture = load("res://assets/art/ocean.png")
-	ocan_spr.centered = false
-	ocan_spr.position = Vector2.ZERO
-	ocan_spr.scale = Vector2(WORLD.x / 900.0, WORLD.y / 1400.0)
-	ocan_spr.z_index = -3
+	ocean_spr.name = "OceanUnderlay"
+	ocean_spr.texture = load("res://assets/art/ocean.png")
+	ocean_spr.centered = false
+	ocean_spr.position = Vector2.ZERO
+	ocean_spr.scale = Vector2(WORLD.x / 900.0, WORLD.y / 1400.0)
+	ocean_spr.z_index = -3
 	$World.add_child(ocean_spr)
 	$World.move_child(ocean_spr, 0)
 	_setup_underwater_fish()
