@@ -4,12 +4,20 @@
 
 > 一句话：在波涛与匮乏中，用最简单的触控抛钩打捞、撑过 3～5 分钟的短关卡。
 
-## 试玩（Level 1 原型）
+## 试玩（Level 1 原型）— 浏览器即可
 
-**现在就能玩**，无需安装 Godot：
+**是的，这是浏览器版本。** 手机 / iPad / 电脑打开链接就能玩，**不用安装 Godot**。
 
-1. 打开 [`play/index.html`](play/index.html)  
-   或在 `play/` 目录执行：
+> 正式引擎仍选 Godot 4；当前 try-now 是 HTML5/Canvas 垂直切片（本机未装 Godot 导出模板，故先用浏览器原型）。之后可把同一关迁入 `godot/` 再做 Godot Web / 移动导出。
+
+### 在线试玩（GitHub Pages）
+
+- **https://puwang01.github.io/raft-survive/** （自动跳到游戏）
+- 或直接：**https://puwang01.github.io/raft-survive/play/**
+
+### 本地打开
+
+1. 打开 [`play/index.html`](play/index.html)，或：
 
    ```bash
    cd play && python3 -m http.server 8080
@@ -17,7 +25,7 @@
 
    浏览器访问 <http://localhost:8080/>
 
-2. 详细说明见 **[play/README.md](play/README.md)**（触控操作、胜负条件、存档）。
+2. 操作说明见 **[play/README.md](play/README.md)**。
 
 | 内容 | 说明 |
 |------|------|

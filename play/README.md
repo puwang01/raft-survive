@@ -1,6 +1,11 @@
 # 试玩 · Level 1 原型（HTML5）
 
-无需安装 Godot。用手机 / iPad / 电脑浏览器即可试玩第 1 关垂直切片。
+**浏览器游戏**（不是要先装 Godot 才能玩）。手机 / iPad / 电脑打开即可。
+
+**在线：** https://puwang01.github.io/raft-survive/play/
+
+无需安装 Godot。本目录是 try-now 构建；Godot 4 骨架在 [`../godot/`](../godot/)。
+
 
 ## 怎么打开
 
