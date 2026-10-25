@@ -46,10 +46,43 @@ func _ready() -> void:
 	hint_lbl.modulate.a = 0.0
 	_style_bars()
 	_build_inventory_slots()
+	_apply_safe_area()
+	get_tree().root.size_changed.connect(_apply_safe_area)
 	$Root/Bottom/Actions/Pause.pressed.connect(func(): GameState.set_paused(true))
 	btn_reel.pressed.connect(_on_reel)
 	btn_eat.pressed.connect(_on_eat)
 	_update_day()
+
+
+func _apply_safe_area() -> void:
+	# Avoid notch / status / gesture bars; keep HUD inside safe insets
+	var safe: Rect2 = DisplayServer.get_display_safe_area()
+	var screen: Vector2i = DisplayServer.screen_get_size()
+	if screen.x <= 0 or screen.y <= 0:
+		return
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var left := 12.0
+	var top := 12.0
+	var right := 12.0
+	var bottom := 12.0
+	if safe.size.x > 0.0 and safe.size.y > 0.0:
+		var sx := vp.x / float(screen.x)
+		var sy := vp.y / float(screen.y)
+		left = maxf(12.0, float(safe.position.x) * sx)
+		top = maxf(12.0, float(safe.position.y) * sy)
+		right = maxf(12.0, (float(screen.x) - float(safe.position.x + safe.size.x)) * sx)
+		bottom = maxf(12.0, (float(screen.y) - float(safe.position.y + safe.size.y)) * sy)
+	if gameplay_root:
+		gameplay_root.offset_left = left
+		gameplay_root.offset_top = top
+		gameplay_root.offset_right = -right
+	if bottom_root:
+		bottom_root.offset_left = left
+		bottom_root.offset_right = -right
+		bottom_root.offset_bottom = -bottom
+	if root:
+		root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
 
 func _build_overlays() -> void:
 	title = _make_dim("Title")

@@ -43,12 +43,14 @@ func _ready() -> void:
 	sky.scale = Vector2(WORLD.x / 720.0 * 1.1, 1.15)
 	player.texture = load("res://assets/art/player.png")
 	player.centered = true
-	# Offset so sprite origin sits at feet (bottom), clearly standing on deck
-	player.offset = Vector2(0, -player.texture.get_height() * 0.5)  # feet at node origin
-	player.position = Vector2(22, 6)  # feet planted on raft deck
-	player.scale = Vector2(0.72, 0.72)
-	player.z_index = 3
+	# Feet-origin: side-view standing sprite — boots on deck, never prone
+	var ph := float(player.texture.get_height())
+	player.offset = Vector2(0, -ph * 0.5)
+	player.position = Vector2(18, 10)
+	player.scale = Vector2(0.78, 0.78)
+	player.z_index = 5
 	player.rotation = 0.0
+	player.flip_h = false
 	shark.raft_path = shark.get_path_to(raft)
 	shark.position = Vector2(200, 200)
 	shark.bit_raft.connect(_on_shark_bite)
@@ -58,78 +60,130 @@ func _ready() -> void:
 	# Idle preview debris
 	_ensure_debris(true)
 	camera.position = raft.position
+	_adapt_camera_to_viewport()
 	if hud.has_method("bind"):
 		hud.bind(survival, self)
 
 func _setup_water_shader() -> void:
-	# Ocean underlay sprite (coral/sand silhouettes) under the animated water shader
+	# Seafloor underlay — visible through translucent water
 	var ocean_spr := Sprite2D.new()
-	ocean_spr.name = "OceanUnderlay"
-	ocean_spr.texture = load("res://assets/art/ocean.png")
-	ocean_spr.centered = false
-	ocean_spr.position = Vector2.ZERO
-	ocean_spr.scale = Vector2(WORLD.x / 900.0, WORLD.y / 1400.0)
-	ocean_spr.z_index = -2
+	ocan_spr.name = "OceanUnderlay"
+	ocan_spr.texture = load("res://assets/art/ocean.png")
+	ocan_spr.centered = false
+	ocan_spr.position = Vector2.ZERO
+	ocan_spr.scale = Vector2(WORLD.x / 900.0, WORLD.y / 1400.0)
+	ocan_spr.z_index = -3
 	$World.add_child(ocean_spr)
 	$World.move_child(ocean_spr, 0)
+	_setup_underwater_fish()
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://assets/shaders/water.gdshader")
 	mat.set_shader_parameter("underlay_tex", load("res://assets/art/ocean.png"))
-	mat.set_shader_parameter("underlay_mix", 0.32)
-	mat.set_shader_parameter("foam_amount", 0.45)
-	mat.set_shader_parameter("caustic_strength", 0.18)
-	mat.set_shader_parameter("wave_speed", 0.65)
+	mat.set_shader_parameter("underlay_mix", 0.72)
+	mat.set_shader_parameter("foam_amount", 0.36)
+	mat.set_shader_parameter("caustic_strength", 0.22)
+	mat.set_shader_parameter("wave_speed", 0.72)
+	mat.set_shader_parameter("surface_alpha", 0.46)
+	mat.set_shader_parameter("ripple_strength", 0.04)
+	mat.set_shader_parameter("reflection_strength", 0.5)
 	water.material = mat
 	water.size = WORLD
 	water.position = Vector2.ZERO
-	water.color = Color(0.12, 0.58, 0.68, 1.0)
+	water.color = Color(0.15, 0.62, 0.72, 0.55)
 	water.z_index = -1
+
 
 func _setup_raft_props() -> void:
 	var raft_sprite: Sprite2D = raft.get_node("RaftSprite")
 	raft_sprite.texture = load("res://assets/art/raft.png")
 	raft_sprite.centered = true
-	raft_sprite.scale = Vector2(0.72, 0.72)
-	# Soft foam ring under raft for water contact
+	raft_sprite.scale = Vector2(0.68, 0.68)
 	var foam := Sprite2D.new()
 	foam.name = "FoamRing"
 	foam.z_index = -1
-	var foam_img := Image.create(256, 180, false, Image.FORMAT_RGBA8)
+	var foam_img := Image.create(280, 260, false, Image.FORMAT_RGBA8)
 	foam_img.fill(Color(0, 0, 0, 0))
-	for y in 180:
-		for x in 256:
-			var dx := (x - 128.0) / 110.0
-			var dy := (y - 90.0) / 70.0
+	for y in 260:
+		for x in 280:
+			var dx := (x - 140.0) / 125.0
+			var dy := (y - 130.0) / 110.0
 			var d2 := dx * dx + dy * dy
-			if d2 > 0.55 and d2 < 1.15:
-				var a := 1.0 - absf(d2 - 0.85) / 0.35
-				foam_img.set_pixel(x, y, Color(0.92, 0.98, 1.0, clampf(a * 0.55, 0.0, 0.55)))
+			if d2 > 0.55 and d2 < 1.2:
+				var a := 1.0 - absf(d2 - 0.88) / 0.38
+				foam_img.set_pixel(x, y, Color(0.92, 0.98, 1.0, clampf(a * 0.5, 0.0, 0.5)))
 	foam.texture = ImageTexture.create_from_image(foam_img)
 	foam.centered = true
-	foam.position = Vector2(0, 18)
-	foam.scale = Vector2(1.35, 1.1)
+	foam.position = Vector2(0, 14)
+	foam.scale = Vector2(1.25, 1.15)
 	raft.add_child(foam)
 	raft.move_child(foam, 0)
 	for item in [
-		["Sail", "res://assets/art/sail.png", Vector2(-8, -95), Vector2(0.55, 0.55)],
-		["Grill", "res://assets/art/grill.png", Vector2(58, 18), Vector2(0.48, 0.48)],
-		["Chest", "res://assets/art/chest.png", Vector2(-58, 32), Vector2(0.5, 0.5)],
-		["Purifier", "res://assets/art/purifier.png", Vector2(52, -42), Vector2(0.42, 0.42)],
-		["Bed", "res://assets/art/bed.png", Vector2(-6, 52), Vector2(0.5, 0.5)],
+		["Sail", "res://assets/art/sail.png", Vector2(-6, -88), Vector2(0.52, 0.52), 1],
+		["Purifier", "res://assets/art/purifier.png", Vector2(62, -28), Vector2(0.4, 0.4), 2],
+		["Chest", "res://assets/art/chest.png", Vector2(-62, 28), Vector2(0.48, 0.48), 2],
+		["Grill", "res://assets/art/grill.png", Vector2(55, 42), Vector2(0.46, 0.46), 2],
+		["Bed", "res://assets/art/bed.png", Vector2(-8, 58), Vector2(0.48, 0.48), 1],
 	]:
 		var s := Sprite2D.new()
 		s.name = item[0]
 		s.texture = load(item[1])
 		s.position = item[2]
 		s.scale = item[3]
+		s.z_index = int(item[4])
 		s.centered = true
 		raft.add_child(s)
-	# gentle raft bob + slight roll
 	var tw := create_tween().set_loops()
 	tw.tween_property(raft, "position:y", raft.position.y + 5.0, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	tw.parallel().tween_property(raft, "rotation", 0.025, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(raft, "rotation", 0.022, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(raft, "position:y", raft.position.y - 5.0, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	tw.parallel().tween_property(raft, "rotation", -0.025, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(raft, "rotation", -0.022, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+func _setup_underwater_fish() -> void:
+	var tex: Texture2D = load("res://assets/art/swim_fish.png")
+	var layer := Node2D.new()
+	layer.name = "UnderwaterFish"
+	layer.z_index = -2
+	$World.add_child(layer)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	for i in 10:
+		var f := Sprite2D.new()
+		f.texture = tex
+		f.centered = true
+		var sc := rng.randf_range(0.7, 1.35)
+		f.scale = Vector2(sc, sc)
+		f.modulate = Color(1, 1, 1, rng.randf_range(0.45, 0.8))
+		f.position = Vector2(rng.randf_range(60.0, WORLD.x - 60.0), rng.randf_range(180.0, WORLD.y - 120.0))
+		f.flip_h = rng.randf() > 0.5
+		layer.add_child(f)
+		var dist := rng.randf_range(80.0, 220.0)
+		var dur := rng.randf_range(4.5, 9.0)
+		var start := f.position
+		var end := start + Vector2(dist if not f.flip_h else -dist, rng.randf_range(-30.0, 30.0))
+		var fish_ref: Sprite2D = f
+		var going_right: bool = not f.flip_h
+		var ftw := create_tween().set_loops()
+		ftw.tween_property(fish_ref, "position", end, dur).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		ftw.tween_callback(func(): fish_ref.flip_h = going_right)
+		ftw.tween_property(fish_ref, "position", start, dur).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		ftw.tween_callback(func(): fish_ref.flip_h = not going_right)
+
+
+
+func _adapt_camera_to_viewport() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	if vp.y <= 0.0:
+		return
+	var design_aspect := 720.0 / 1280.0
+	var aspect := vp.x / vp.y
+	if aspect < design_aspect * 0.92:
+		camera.zoom = Vector2(0.92, 0.92)
+	elif aspect > design_aspect * 1.15:
+		camera.zoom = Vector2(1.05, 1.05)
+	else:
+		camera.zoom = Vector2.ONE
+	camera.position_smoothing_enabled = true
+	camera.position_smoothing_speed = 6.0
 
 func _setup_clouds() -> void:
 	var tex: Texture2D = load("res://assets/art/cloud.png")

@@ -10,7 +10,7 @@
 
 | 获取方式 | 链接 |
 |----------|------|
-| GitHub Release | **[直接下载 APK](https://github.com/puwang01/raft-survive/releases/download/v0.2.0-level1/RaftSurvive-level1-debug.apk)** |
+| GitHub Release | **[直接下载 APK](https://github.com/puwang01/raft-survive/releases/download/v0.2.3/RaftSurvive-level1-debug.apk)** |
 | 仓库内文件 | [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) |
 
 ### 手机安装步骤
@@ -22,7 +22,7 @@
 3. 打开下载的 `RaftSurvive-level1-debug.apk` → 安装 → 打开 **Raft Survive**。
 4. 若系统提示「面向旧版 Android / 调试版」：点继续安装即可（debug 包用于试玩）。
 
-包名：`com.puwang.raftsurvive` · 版本：`0.2.0`
+包名：`com.puwang.raftsurvive` · 版本：`0.2.3`
 
 ### 操作
 
@@ -33,13 +33,13 @@
 
 ## 画面（相对旧 HTML 原型）
 
-**v0.2.2** 修正角色为甲板站立姿势；画面继续精修：
+**v0.2.3** 对齐参考截图 + 显示适配：
 
-- **海水**：多层波浪扭曲、深度渐变、焦散闪光、白浪泡沫、阳光高光；水下珊瑚/沙底衬底
-- **木筏**：粗圆木甲板、绳结捆扎、金属护角、底部浪花圈、轻微起伏
-- **白帆**：木桅横杆、布料褶皱、蓝色补丁；烧烤架（烤鱼+烟）、木箱、集水器、绿垫
-- **角色**：白 T 恤 + 卡其短裤 + 棕发靴，抛钩姿势；漂流物同步加精
-- HUD：生命/饥饿/口渴、DAY/天气、目标、物品栏
+- **角色**：侧视站立精灵（头上脚下、靴底阴影），甲板脚原点，不再读成趴卧/俯视
+- **木筏**：近方形 3×3 粗圆木平台、绳结、金属护角；帆 / 蓝色集水桶 / 箱 / 烤鱼架 / 绿垫
+- **海水**：半透明见底、表面涟漪与反光、焦散；海底轮廓 + 游动鱼群
+- **显示**：Android edge-to-edge + 沉浸式、安全区避让刘海/状态栏；拉伸适配多分辨率，清色与背景对齐海水（去掉顶栏白条）
+- HUD：按安全区 insets 缩进；相机随屏幕比例微调
 
 ## 工程与备选构建
 

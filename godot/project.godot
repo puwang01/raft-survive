@@ -4,9 +4,11 @@ config_version=5
 
 [application]
 
+boot_splash/bg_color=Color(0.08, 0.42, 0.58, 1)
+
 config/name="Raft Survive"
 config/description="紧张向海上木筏求生 — Level 1"
-config/version="0.2.0-level1"
+config/version="0.2.3"
 run/main_scene="res://scenes/boot/boot.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://icon.svg"
@@ -23,6 +25,7 @@ window/size/viewport_height=1280
 window/size/mode=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/stretch/scale_mode="fractional"
 window/handheld/orientation=1
 
 [input]
@@ -53,7 +56,7 @@ pointing/emulate_touch_from_mouse=true
 
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.15, 0.45, 0.65, 1)
+environment/defaults/default_clear_color=Color(0.08, 0.42, 0.58, 1)
 
 [android]
 
