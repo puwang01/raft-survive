@@ -43,6 +43,15 @@ func _apply_tex() -> void:
 	if sprite:
 		sprite.texture = load(TEX[kind])
 		sprite.centered = true
+		match kind:
+			Kind.WOOD:
+				sprite.scale = Vector2(0.55, 0.55)
+			Kind.BARREL, Kind.CRATE:
+				sprite.scale = Vector2(0.5, 0.5)
+			Kind.FISH:
+				sprite.scale = Vector2(0.55, 0.55)
+			Kind.BOTTLE:
+				sprite.scale = Vector2(0.7, 0.7)
 
 func _process(delta: float) -> void:
 	if hooked:

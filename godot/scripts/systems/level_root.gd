@@ -31,8 +31,10 @@ func _ready() -> void:
 	_setup_clouds()
 	coral_a.texture = load("res://assets/art/coral.png")
 	coral_b.texture = load("res://assets/art/coral.png")
-	coral_a.modulate = Color(1, 1, 1, 0.55)
-	coral_b.modulate = Color(1, 1, 1, 0.4)
+	coral_a.modulate = Color(1, 1, 1, 0.7)
+	coral_b.modulate = Color(1, 1, 1, 0.55)
+	coral_a.scale = Vector2(1.4, 1.4)
+	coral_b.scale = Vector2(1.2, 1.2)
 	coral_a.position = Vector2(220, 980)
 	coral_b.position = Vector2(680, 520)
 	sky.texture = load("res://assets/art/sky.png")
@@ -40,8 +42,9 @@ func _ready() -> void:
 	sky.position = Vector2(0, -80)
 	sky.scale = Vector2(WORLD.x / 720.0 * 1.1, 1.15)
 	player.texture = load("res://assets/art/player.png")
-	player.position = Vector2(8, -18)
-	player.scale = Vector2(0.55, 0.55)
+	player.position = Vector2(12, -28)
+	player.scale = Vector2(0.62, 0.62)
+	player.z_index = 2
 	shark.raft_path = shark.get_path_to(raft)
 	shark.position = Vector2(200, 200)
 	shark.bit_raft.connect(_on_shark_bite)
@@ -55,23 +58,60 @@ func _ready() -> void:
 		hud.bind(survival, self)
 
 func _setup_water_shader() -> void:
+	# Ocean underlay sprite (coral/sand silhouettes) under the animated water shader
+	var ocean_spr := Sprite2D.new()
+	ocean_spr.name = "OceanUnderlay"
+	ocean_spr.texture = load("res://assets/art/ocean.png")
+	ocean_spr.centered = false
+	ocean_spr.position = Vector2.ZERO
+	ocean_spr.scale = Vector2(WORLD.x / 900.0, WORLD.y / 1400.0)
+	ocean_spr.z_index = -2
+	$World.add_child(ocean_spr)
+	$World.move_child(ocean_spr, 0)
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://assets/shaders/water.gdshader")
+	mat.set_shader_parameter("underlay_tex", load("res://assets/art/ocean.png"))
+	mat.set_shader_parameter("underlay_mix", 0.32)
+	mat.set_shader_parameter("foam_amount", 0.45)
+	mat.set_shader_parameter("caustic_strength", 0.18)
+	mat.set_shader_parameter("wave_speed", 0.65)
 	water.material = mat
 	water.size = WORLD
 	water.position = Vector2.ZERO
-	water.color = Color(0.15, 0.55, 0.65, 1)
+	water.color = Color(0.12, 0.58, 0.68, 1.0)
+	water.z_index = -1
 
 func _setup_raft_props() -> void:
 	var raft_sprite: Sprite2D = raft.get_node("RaftSprite")
 	raft_sprite.texture = load("res://assets/art/raft.png")
 	raft_sprite.centered = true
+	raft_sprite.scale = Vector2(0.72, 0.72)
+	# Soft foam ring under raft for water contact
+	var foam := Sprite2D.new()
+	foam.name = "FoamRing"
+	foam.z_index = -1
+	var foam_img := Image.create(256, 180, false, Image.FORMAT_RGBA8)
+	foam_img.fill(Color(0, 0, 0, 0))
+	for y in 180:
+		for x in 256:
+			var dx := (x - 128.0) / 110.0
+			var dy := (y - 90.0) / 70.0
+			var d2 := dx * dx + dy * dy
+			if d2 > 0.55 and d2 < 1.15:
+				var a := 1.0 - absf(d2 - 0.85) / 0.35
+				foam_img.set_pixel(x, y, Color(0.92, 0.98, 1.0, clampf(a * 0.55, 0.0, 0.55)))
+	foam.texture = ImageTexture.create_from_image(foam_img)
+	foam.centered = true
+	foam.position = Vector2(0, 18)
+	foam.scale = Vector2(1.35, 1.1)
+	raft.add_child(foam)
+	raft.move_child(foam, 0)
 	for item in [
-		["Sail", "res://assets/art/sail.png", Vector2(-20, -70), Vector2(0.7, 0.7)],
-		["Grill", "res://assets/art/grill.png", Vector2(48, 10), Vector2(0.7, 0.7)],
-		["Chest", "res://assets/art/chest.png", Vector2(-50, 28), Vector2(0.75, 0.75)],
-		["Purifier", "res://assets/art/purifier.png", Vector2(40, -36), Vector2(0.65, 0.65)],
-		["Bed", "res://assets/art/bed.png", Vector2(-10, 40), Vector2(0.7, 0.7)],
+		["Sail", "res://assets/art/sail.png", Vector2(-8, -95), Vector2(0.55, 0.55)],
+		["Grill", "res://assets/art/grill.png", Vector2(58, 18), Vector2(0.48, 0.48)],
+		["Chest", "res://assets/art/chest.png", Vector2(-58, 32), Vector2(0.5, 0.5)],
+		["Purifier", "res://assets/art/purifier.png", Vector2(52, -42), Vector2(0.42, 0.42)],
+		["Bed", "res://assets/art/bed.png", Vector2(-6, 52), Vector2(0.5, 0.5)],
 	]:
 		var s := Sprite2D.new()
 		s.name = item[0]
@@ -80,10 +120,12 @@ func _setup_raft_props() -> void:
 		s.scale = item[3]
 		s.centered = true
 		raft.add_child(s)
-	# gentle raft bob
+	# gentle raft bob + slight roll
 	var tw := create_tween().set_loops()
-	tw.tween_property(raft, "position:y", raft.position.y + 4.0, 1.6).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(raft, "position:y", raft.position.y - 4.0, 1.6).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(raft, "position:y", raft.position.y + 5.0, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(raft, "rotation", 0.025, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(raft, "position:y", raft.position.y - 5.0, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(raft, "rotation", -0.025, 1.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 func _setup_clouds() -> void:
 	var tex: Texture2D = load("res://assets/art/cloud.png")
