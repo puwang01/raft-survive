@@ -10,7 +10,7 @@
 
 | 获取方式 | 链接 |
 |----------|------|
-| GitHub Release | 见本仓库 [Releases](https://github.com/puwang01/raft-survive/releases) 最新版 `RaftSurvive-level1-debug.apk` |
+| GitHub Release | **[直接下载 APK](https://github.com/puwang01/raft-survive/releases/download/v0.2.0-level1/RaftSurvive-level1-debug.apk)** |
 | 仓库内文件 | [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) |
 
 ### 手机安装步骤
@@ -47,7 +47,7 @@
 |------|------|
 | [`godot/`](godot/) | **正式 Godot 4 工程**（请用此目录继续开发） |
 | [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) | Android 试玩包 |
-| [`dist/RaftSurvive-level1.x86_64`](dist/RaftSurvive-level1.x86_64) | Linux 桌面二进制（可选） |
+| [Release 内 Linux 二进制](https://github.com/puwang01/raft-survive/releases/tag/v0.2.0-level1) | `RaftSurvive-level1.x86_64` + `.pck`（可选） |
 | [`play/`](play/) | 旧 HTML5 原型（仅作对照，已非主交付） |
 | [`docs/`](docs/) | 设计文档 |
 
