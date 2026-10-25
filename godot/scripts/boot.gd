@@ -1,5 +1,5 @@
-extends Node
-## Boot placeholder — open play/index.html for the try-now Level 1 build.
+extends Control
 
 func _ready() -> void:
-	print("Raft Survive Godot skeleton. Playable HTML prototype: ../play/index.html")
+	await get_tree().create_timer(0.35).timeout
+	get_tree().change_scene_to_file("res://scenes/level/level_1.tscn")

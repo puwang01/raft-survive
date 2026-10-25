@@ -1,0 +1,16 @@
+# Godot
+godot/.godot/
+godot/.import/
+godot/**/*.translation
+*.tmp
+
+# Local export artifacts / signatures
+dist/*.idsig
+*.apk.idsig
+
+# OS
+.DS_Store
+Thumbs.db
+dist/*.x86_64
+dist/*.pck
+dist/*.sh

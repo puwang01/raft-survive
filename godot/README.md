@@ -1,23 +1,26 @@
-# Godot 4 项目骨架
+# Godot 工程（正式可玩构建）
 
-引擎选择仍为 **Godot 4**。当前可立即试玩的是仓库根下的 [`../play/`](../play/) HTML5 原型（无需安装 Godot）。
+**引擎：Godot 4.7.2** · 第 1 关垂直切片（抛钩打捞 + 三维生存条 + 存档）
 
-## 打开方式
+## 打开工程
 
-1. 安装 [Godot 4.2+](https://godotengine.org/download/)
-2. 项目管理器 → **导入** → 选择本目录的 `project.godot`
-3. 主场景：`scenes/boot/boot.tscn`（占位）
+1. 安装 [Godot 4.7+](https://godotengine.org/download)
+2. 导入本目录（含 `project.godot`）
+3. 按 F5 运行
 
-## 目录（与 docs/06 对齐）
+## 导出 Android
 
-```
-godot/
-├── project.godot
-├── scenes/   boot, meta, level, raft, hook, items, ui
-├── scripts/  systems, data, util
-├── assets/   art, audio, fonts
-├── resources/
-└── saves/
-```
+本仓库已提供预编译 debug APK，见仓库根目录 `dist/` 或 GitHub Release。
 
-下一步：把 `play/index.html` 中已验证的 Level 1 循环（抛钩、三维生存、浮木目标、鲨、存档）迁入对应场景与 `SurvivalSystem` / `HookController` / `SaveService`。
+自行导出：
+
+1. 编辑器 → 编辑器设置 → Export → Android：配置 JDK / Android SDK
+2. 项目 → 导出 → Android → 导出项目
+
+## 画面相对 HTML 原型的提升
+
+- 晴朗白天天空 + 太阳光晕与云层
+- 水面着色器（波浪 / 泡沫 / 焦散）
+- 木筏：木板纹理、白帆、烧烤架（烤鱼）、木箱、集水器、床垫、角色与钩子
+- 漂流物：浮木 / 木桶 / 木箱 / 鱼 / 水瓶；水下珊瑚
+- HUD：生命/饥饿/口渴条、DAY/天气、目标、底部 8 格物品栏与大按钮

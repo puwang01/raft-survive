@@ -1,61 +1,69 @@
 # Raft Survive（紧张木筏求生）
 
-手机 / iPad 上的**紧张向**海上木筏求生游戏。引擎：**Godot 4**。
+手机 / iPad 上的**紧张向**海上木筏求生。引擎：**Godot 4.7.2**。
 
-> 一句话：在波涛与匮乏中，用最简单的触控抛钩打捞、撑过 3～5 分钟的短关卡。
+> 一句话：在波涛与匮乏中，用最简单的触控抛钩打捞，撑过 3～5 分钟的短关卡。
 
-## 试玩（Level 1 原型）— 浏览器即可
+## 安卓安装（推荐）
 
-**是的，这是浏览器版本。** 手机 / iPad / 电脑打开链接就能玩，**不用安装 Godot**。
+已导出 **debug APK**（可用调试签名侧载安装）。
 
-> 正式引擎仍选 Godot 4；当前 try-now 是 HTML5/Canvas 垂直切片（本机未装 Godot 导出模板，故先用浏览器原型）。之后可把同一关迁入 `godot/` 再做 Godot Web / 移动导出。
+| 获取方式 | 链接 |
+|----------|------|
+| GitHub Release | 见本仓库 [Releases](https://github.com/puwang01/raft-survive/releases) 最新版 `RaftSurvive-level1-debug.apk` |
+| 仓库内文件 | [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) |
 
-### 在线试玩（GitHub Pages）
+### 手机安装步骤
 
-- **https://puwang01.github.io/raft-survive/** （自动跳到游戏）
-- 或直接：**https://puwang01.github.io/raft-survive/play/**
+1. 用手机浏览器打开上述 APK 链接并下载（或用电脑下载后传到手机）。
+2. **允许安装未知来源应用**：
+   - 一般路径：`设置 → 安全 / 应用 → 安装未知应用`，对「文件管理 / Chrome / 浏览器」开启允许。
+   - 部分国产系统：`设置 → 应用管理 → 特殊权限 → 安装未知应用`。
+3. 打开下载的 `RaftSurvive-level1-debug.apk` → 安装 → 打开 **Raft Survive**。
+4. 若系统提示「面向旧版 Android / 调试版」：点继续安装即可（debug 包用于试玩）。
 
-### 本地打开
+包名：`com.puwang.raftsurvive` · 版本：`0.2.0`
 
-1. 打开 [`play/index.html`](play/index.html)，或：
+### 操作
 
-   ```bash
-   cd play && python3 -m http.server 8080
-   ```
+- **按住拖动**瞄准，**松手**抛钩；点「收回钩」可提前拉回。
+- 目标：收集 **5 块浮木**（约 4 分钟时限）。
+- 盯住 **生命 / 饥饿 / 口渴**；用「吃喝」消耗食物/淡水。
+- 暂停里可**手动存档**；游戏中每 **60 秒**自动存档（进后台也会存）。
 
-   浏览器访问 <http://localhost:8080/>
+## 画面（相对旧 HTML 原型）
 
-2. 操作说明见 **[play/README.md](play/README.md)**。
+已按参考截图气质重做，不再是粗糙色块：
+
+- 晴朗白天海面 + 天空/太阳/云
+- 动态水面着色器（波浪、泡沫、焦散）
+- 木筏：白帆、烧烤架、木箱、集水器、床垫、角色抛钩
+- 漂流物：浮木、木桶、木箱、鱼、水瓶；远处珊瑚
+- HUD：三维状态条、DAY/天气、目标进度、底部物品栏
+
+## 工程与备选构建
 
 | 内容 | 说明 |
 |------|------|
-| 可玩构建 | [`play/`](play/) — HTML5 / Canvas 第 1 关垂直切片 |
-| Godot 骨架 | [`godot/`](godot/) — Godot 4 工程（`project.godot`），正式开发迁入此处 |
+| [`godot/`](godot/) | **正式 Godot 4 工程**（请用此目录继续开发） |
+| [`dist/RaftSurvive-level1-debug.apk`](dist/RaftSurvive-level1-debug.apk) | Android 试玩包 |
+| [`dist/RaftSurvive-level1.x86_64`](dist/RaftSurvive-level1.x86_64) | Linux 桌面二进制（可选） |
+| [`play/`](play/) | 旧 HTML5 原型（仅作对照，已非主交付） |
+| [`docs/`](docs/) | 设计文档 |
 
-第 1 关：拖动瞄准抛钩 → 收集 **5 块浮木**（约 4 分钟）→ 盯住口渴 / 饥饿 / 生命，小心鲨鱼。
+本地用编辑器打开：`godot/project.godot`（Godot **4.7.2**）。
 
-## 文档入口
+## 技术摘要
 
-完整设计文档见 **[docs/](docs/README.md)**。
+- **平台**：Android（已出包）/ 亦可导出 iOS、Web
+- **引擎**：Godot **4.7.2**（2D + 水面着色器，mobile 渲染）
+- **单局**：第 1 关约 **3～5 分钟**
+- **存档**：手动 + 默认 **60 秒**自动 + 进后台强制存
 
-| 文档 | 内容 |
-|------|------|
-| [01 愿景与定位](docs/01-game-vision.md) | 基调、平台、引擎、非目标 |
-| [02 核心循环](docs/02-core-loop.md) | 抛钩→生存压力→短局结算 |
-| [03 操作与 UX](docs/03-controls-and-ux.md) | 触控、大按钮、上手原则 |
-| [04 关卡与节奏](docs/04-levels-and-pacing.md) | 3～5 分钟关卡、难度递进 |
-| [05 存档系统](docs/05-save-system.md) | 手动存档 + 30s/60s 自动存档 |
-| [06 Godot 项目结构](docs/06-godot-project-structure.md) | 目录与场景拆分建议 |
-| [07 待定项](docs/07-open-questions.md) | 尚未拍板的设计决策 |
+## 文档
 
-## 技术要点（摘要）
-
-- **平台**：iPhone / Android 手机 + iPad
-- **引擎**：Godot 4（2D 优先）；当前 try-now 为 HTML5 原型以便零安装试玩
-- **基调**：紧张求生，非 cozy
-- **单局时长**：每关 / 每段 **3～5 分钟**
-- **存档**：允许手动存档；自动存档默认 **60 秒**（可选 30 秒）
+见 **[docs/](docs/README.md)**。
 
 ## 许可
 
-设计文档仅作项目规划用途；具体开源许可待项目代码阶段再定。
+设计与原型代码用途以仓库后续声明为准。

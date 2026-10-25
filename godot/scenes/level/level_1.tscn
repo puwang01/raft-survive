@@ -1,0 +1,237 @@
+[gd_scene load_steps=8 format=3 uid="uid://raftlevel1"]
+
+[ext_resource type="Script" path="res://scripts/systems/level_root.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/systems/survival_system.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/systems/hook_controller.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/systems/shark.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/systems/hud.gd" id="5"]
+[ext_resource type="Texture2D" path="res://assets/art/raft.png" id="6"]
+[ext_resource type="Texture2D" path="res://assets/art/sky.png" id="7"]
+
+[node name="Level1" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Parallax" type="Node2D" parent="."]
+
+[node name="Sky" type="Sprite2D" parent="Parallax"]
+texture = ExtResource("7")
+centered = false
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Water" type="ColorRect" parent="World"]
+offset_right = 900.0
+offset_bottom = 1400.0
+mouse_filter = 2
+color = Color(0.15, 0.55, 0.65, 1)
+
+[node name="CoralA" type="Sprite2D" parent="World"]
+
+[node name="CoralB" type="Sprite2D" parent="World"]
+
+[node name="DebrisRoot" type="Node2D" parent="World"]
+
+[node name="Shark" type="Area2D" parent="World"]
+collision_layer = 8
+collision_mask = 1
+script = ExtResource("4")
+
+[node name="Sprite2D" type="Sprite2D" parent="World/Shark"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Shark"]
+
+[node name="Raft" type="Node2D" parent="World"]
+position = Vector2(450, 700)
+
+[node name="RaftSprite" type="Sprite2D" parent="World/Raft"]
+texture = ExtResource("6")
+
+[node name="Player" type="Sprite2D" parent="World/Raft"]
+
+[node name="HookController" type="Node2D" parent="World/Raft"]
+script = ExtResource("3")
+
+[node name="Line" type="Line2D" parent="World/Raft/HookController"]
+width = 2.5
+default_color = Color(0.9, 0.93, 0.97, 0.9)
+
+[node name="AimLine" type="Line2D" parent="World/Raft/HookController"]
+width = 2.0
+default_color = Color(1, 0.86, 0.35, 0.75)
+
+[node name="HookSprite" type="Sprite2D" parent="World/Raft/HookController"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(450, 700)
+
+[node name="SurvivalSystem" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5")
+
+[node name="Root" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HurtFlash" type="ColorRect" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.8, 0.1, 0.1, 0)
+
+[node name="Top" type="VBoxContainer" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 16.0
+offset_right = -12.0
+offset_bottom = 170.0
+theme_override_constants/separation = 8
+
+[node name="Bars" type="HBoxContainer" parent="HUD/Root/Top"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Health" type="VBoxContainer" parent="HUD/Root/Top/Bars"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="HUD/Root/Top/Bars/Health"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "生命  100"
+
+[node name="Bar" type="ProgressBar" parent="HUD/Root/Top/Bars/Health"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="Hunger" type="VBoxContainer" parent="HUD/Root/Top/Bars"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="HUD/Root/Top/Bars/Hunger"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "饥饿  100"
+
+[node name="Bar" type="ProgressBar" parent="HUD/Root/Top/Bars/Hunger"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="Thirst" type="VBoxContainer" parent="HUD/Root/Top/Bars"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="HUD/Root/Top/Bars/Thirst"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "口渴  100"
+
+[node name="Bar" type="ProgressBar" parent="HUD/Root/Top/Bars/Thirst"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="DayChip" type="PanelContainer" parent="HUD/Root/Top"]
+layout_mode = 2
+
+[node name="DayText" type="Label" parent="HUD/Root/Top/DayChip"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "DAY 1   08:20   晴"
+horizontal_alignment = 1
+
+[node name="Objective" type="PanelContainer" parent="HUD/Root/Top"]
+layout_mode = 2
+
+[node name="ObjText" type="Label" parent="HUD/Root/Top/Objective"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "目标  收集浮木  0/5"
+horizontal_alignment = 1
+
+[node name="Bottom" type="VBoxContainer" parent="HUD/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -160.0
+offset_right = -10.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="Inventory" type="HBoxContainer" parent="HUD/Root/Bottom"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="Actions" type="HBoxContainer" parent="HUD/Root/Bottom"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Pause" type="Button" parent="HUD/Root/Bottom/Actions"]
+custom_minimum_size = Vector2(88, 52)
+layout_mode = 2
+text = "暂停"
+
+[node name="Reel" type="Button" parent="HUD/Root/Bottom/Actions"]
+custom_minimum_size = Vector2(100, 52)
+layout_mode = 2
+text = "收回钩"
+
+[node name="Eat" type="Button" parent="HUD/Root/Bottom/Actions"]
+custom_minimum_size = Vector2(110, 52)
+layout_mode = 2
+text = "吃喝 (2)"
+
+[node name="Toast" type="Label" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -80.0
+offset_right = 160.0
+offset_bottom = -40.0
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="HUD/Root"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -220.0
+offset_right = 200.0
+offset_bottom = -180.0
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+autowrap_mode = 2
